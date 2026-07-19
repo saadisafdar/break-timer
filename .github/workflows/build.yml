@@ -7,6 +7,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -31,7 +33,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --windowed --name break-timer src/break_timer/cli.py
+          pyinstaller --onefile --windowed --name break-timer --hidden-import=PIL._tkinter_finder run_break_timer.py
 
       - name: Rename artifact (Windows)
         if: matrix.os == 'windows-latest'

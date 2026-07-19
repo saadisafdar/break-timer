@@ -55,14 +55,7 @@ class BreakTimerApp:
         popup.overrideredirect(True)
         popup.configure(bg=TEAL)
 
-        width, height = 500, 210
-        popup.update_idletasks()
-        screen_w = popup.winfo_screenwidth()
-        screen_h = popup.winfo_screenheight()
-        x = (screen_w - width) // 2
-        y = (screen_h - height) // 2
-        popup.geometry(f"{width}x{height}+{x}+{y}")
-
+        width = 500
         card = tk.Frame(popup, bg=TEAL, padx=28, pady=22)
         card.pack(fill="both", expand=True)
 
@@ -109,6 +102,14 @@ class BreakTimerApp:
             0, 0, width - 56, 6, fill=WHITE, width=0
         )
         self._full_bar_width = width - 56
+
+        popup.update_idletasks()
+        height = card.winfo_reqheight()
+        screen_w = popup.winfo_screenwidth()
+        screen_h = popup.winfo_screenheight()
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        popup.geometry(f"{width}x{height}+{x}+{y}")
 
         self.break_end_time = time.monotonic() + self.break_seconds
         self._tick()

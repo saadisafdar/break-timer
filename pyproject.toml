@@ -8,6 +8,10 @@ version = "1.0.0"
 description = "A tiny, lightweight desktop break reminder with a teal countdown screen."
 readme = "README.md"
 requires-python = ">=3.8"
+dependencies = [
+    "pystray>=0.19",
+    "Pillow>=9.0",
+]
 license = { text = "MIT" }
 authors = [{ name = "Sa'adi Safdar" }]
 keywords = ["break", "timer", "reminder", "productivity", "desktop", "tkinter"]
