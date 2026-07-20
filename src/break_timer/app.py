@@ -30,12 +30,15 @@ class BreakTimerApp:
         self.root.withdraw()  # main window is never shown
 
         self.popup = None
+        self.overlay = None
         self.progress_canvas = None
         self.progress_bar_id = None
         self.time_label = None
         self.break_end_time = None
         self.tick_job = None
         self.next_break_job = None
+        self.refocus_job = None
+        self._break_active = False
 
         self.root.protocol("WM_DELETE_WINDOW", self.root.destroy)
         self._reschedule()
@@ -82,8 +85,16 @@ class BreakTimerApp:
                 self.popup.destroy()
             except tk.TclError:
                 pass
+        if self.overlay is not None:
+            try:
+                self.overlay.destroy()
+            except tk.TclError:
+                pass
 
         audio.play_sound(self.config.get("sound", "None"))
+
+        self._break_active = True
+        self._show_overlay()
 
         popup = tk.Toplevel(self.root)
         self.popup = popup
@@ -149,10 +160,64 @@ class BreakTimerApp:
         x = (screen_w - width) // 2
         y = (screen_h - height) // 2
         popup.geometry(f"{width}x{height}+{x}+{y}")
+        popup.update_idletasks()
+
+        self.overlay.lift()
+        popup.lift()
+        popup.focus_force()
+        try:
+            popup.grab_set()
+        except tk.TclError:
+            pass
+        popup.bind("<FocusOut>", self._on_break_focus_out)
+
+        # Re-assert geometry: lift()/focus_force()/grab_set() can trigger Tk
+        # to reprocess pack's automatic geometry request, silently resetting
+        # position to (0,0) if we don't flush and reapply.
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+        popup.update_idletasks()
 
         self._break_total = break_seconds
         self.break_end_time = time.monotonic() + break_seconds
         self._tick()
+
+    def _show_overlay(self):
+        overlay = tk.Toplevel(self.root)
+        self.overlay = overlay
+        overlay.overrideredirect(True)
+        overlay.attributes("-topmost", True)
+        try:
+            overlay.attributes("-alpha", 0.55)
+        except tk.TclError:
+            pass
+        overlay.configure(bg="#000000")
+        overlay.geometry(
+            f"{overlay.winfo_screenwidth()}x{overlay.winfo_screenheight()}+0+0"
+        )
+        # Absorb clicks so they don't reach whatever window is underneath
+        overlay.bind("<Button-1>", lambda e: "break")
+
+    def _on_break_focus_out(self, _event=None):
+        if not self._break_active or self.popup is None:
+            return
+        if self.refocus_job is not None:
+            try:
+                self.root.after_cancel(self.refocus_job)
+            except (ValueError, tk.TclError):
+                pass
+        self.refocus_job = self.root.after(400, self._regain_focus)
+
+    def _regain_focus(self):
+        self.refocus_job = None
+        if not self._break_active or self.popup is None:
+            return
+        try:
+            if self.overlay is not None:
+                self.overlay.lift()
+            self.popup.lift()
+            self.popup.focus_force()
+        except tk.TclError:
+            pass
 
     def _tick(self):
         remaining = self.break_end_time - time.monotonic()
@@ -185,6 +250,13 @@ class BreakTimerApp:
         self._reschedule()
 
     def _close_popup(self):
+        self._break_active = False
+        if self.refocus_job is not None:
+            try:
+                self.root.after_cancel(self.refocus_job)
+            except (ValueError, tk.TclError):
+                pass
+            self.refocus_job = None
         if self.tick_job is not None:
             try:
                 self.root.after_cancel(self.tick_job)
@@ -193,10 +265,20 @@ class BreakTimerApp:
             self.tick_job = None
         if self.popup is not None:
             try:
+                self.popup.grab_release()
+            except tk.TclError:
+                pass
+            try:
                 self.popup.destroy()
             except tk.TclError:
                 pass
             self.popup = None
+        if self.overlay is not None:
+            try:
+                self.overlay.destroy()
+            except tk.TclError:
+                pass
+            self.overlay = None
 
     def run(self):
         self.root.mainloop()

@@ -84,12 +84,31 @@ class SettingsWindow:
         self.win = tk.Toplevel(root)
         self.win.title("Break Timer Settings")
         self.win.configure(bg=BG)
-        self.win.geometry("460x640")
-        self.win.resizable(False, False)
+        self.win.resizable(True, True)
         self.win.attributes("-topmost", True)
 
-        pad = tk.Frame(self.win, bg=BG, padx=24, pady=20)
-        pad.pack(fill="both", expand=True)
+        canvas = tk.Canvas(self.win, bg=BG, highlightthickness=0)
+        vscroll = tk.Scrollbar(self.win, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vscroll.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        vscroll.pack(side="right", fill="y")
+
+        pad = tk.Frame(canvas, bg=BG, padx=24, pady=20)
+        pad_window = canvas.create_window((0, 0), window=pad, anchor="nw")
+
+        def _sync_scrollregion(_event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def _sync_width(event):
+            canvas.itemconfigure(pad_window, width=event.width)
+
+        pad.bind("<Configure>", _sync_scrollregion)
+        canvas.bind("<Configure>", _sync_width)
+
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # Breaks header + toggle
         header = tk.Frame(pad, bg=BG)
@@ -98,14 +117,6 @@ class SettingsWindow:
                   bg=BG, fg=TEXT).pack(side="left")
         self.enabled_toggle = Toggle(header, value=config.get("enabled", True))
         self.enabled_toggle.pack(side="right")
-
-        # Type
-        tk.Label(pad, text="Type", font=("Segoe UI", 10, "bold"),
-                  bg=BG, fg=TEXT, anchor="w").pack(anchor="w", pady=(0, 6))
-        self.type_var = tk.StringVar(value="Popup break")
-        type_box = ttk.Combobox(pad, textvariable=self.type_var, state="readonly",
-                                  values=["Popup break"], width=20)
-        type_box.pack(anchor="w", pady=(0, 16))
 
         # Frequency / Length
         self.get_work_seconds = _hms_row(pad, "Frequency", config.get("work_seconds", 1200))
@@ -142,7 +153,7 @@ class SettingsWindow:
         # Save / Cancel
         btn_row = tk.Frame(pad, bg=BG)
         btn_row.pack(fill="x", pady=(4, 0))
-        tk.Button(btn_row, text="Cancel", command=self.win.destroy,
+        tk.Button(btn_row, text="Cancel", command=self._on_close,
                    bg=PANEL, fg=TEXT, relief="flat", padx=16, pady=8,
                    activebackground=PANEL, activeforeground=TEXT, cursor="hand2"
                    ).pack(side="right", padx=(8, 0))
@@ -153,6 +164,29 @@ class SettingsWindow:
                    ).pack(side="right")
 
         self._style_combobox()
+
+        self.win.update_idletasks()
+        content_width = pad.winfo_reqwidth()
+        content_height = pad.winfo_reqheight()
+        screen_w = self.win.winfo_screenwidth()
+        screen_h = self.win.winfo_screenheight()
+
+        width = content_width + vscroll.winfo_reqwidth()
+        height = min(content_height, screen_h - 100)
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        self.win.geometry(f"{width}x{height}+{x}+{y}")
+        self.win.update_idletasks()
+        self.win.minsize(min(width, 380), 300)
+
+        self.win.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        try:
+            self.win.unbind_all("<MouseWheel>")
+        except tk.TclError:
+            pass
+        self.win.destroy()
 
     def _style_combobox(self):
         style = ttk.Style()
@@ -175,5 +209,5 @@ class SettingsWindow:
             "message": self.message_text.get("1.0", "end").strip(),
             "sound": self.sound_var.get(),
         }
-        self.win.destroy()
+        self._on_close()
         self.on_save(new_config)
