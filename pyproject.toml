@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "break-timer"
-version = "1.0.0"
+version = "1.0.2"
 description = "A tiny, lightweight desktop break reminder with a teal countdown screen."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,3 +33,6 @@ break-timer = "break_timer.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+break_timer = ["assets/sounds/*.wav"]

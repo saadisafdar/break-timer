@@ -3,54 +3,55 @@ import sys
 import threading
 
 from .app import BreakTimerApp
-from .tray import TRAY_AVAILABLE
+from .config import load_config, save_config
+from .tray import TRAY_AVAILABLE, make_icon_image
 
 
 def main():
     parser = argparse.ArgumentParser(description="Lightweight desktop break reminder timer")
-    parser.add_argument("--work", type=float, default=20,
-                         help="Minutes between breaks (default: 20)")
-    parser.add_argument("--break-seconds", type=int, default=60,
-                         help="How long the break screen stays up, in seconds (default: 60)")
-    parser.add_argument("--lines", type=str, nargs="*", default=None,
-                         help="Custom lines shown on the break screen")
     parser.add_argument("--no-tray", action="store_true",
                          help="Disable the system tray icon")
     args = parser.parse_args()
 
-    app = BreakTimerApp(
-        work_minutes=args.work,
-        break_seconds=args.break_seconds,
-        lines=args.lines,
-    )
+    config = load_config()
+    app = BreakTimerApp(config=config)
 
     tray_icon_holder = {}
 
+    def open_settings():
+        # Import here - Toplevel must be created on the main thread via .after()
+        from .settings_window import SettingsWindow
+
+        def on_save(new_config):
+            save_config(new_config)
+            app.apply_config(new_config)
+
+        SettingsWindow(app.root, app.config, on_save=on_save)
+
+    def quit_app():
+        if tray_icon_holder.get("icon"):
+            tray_icon_holder["icon"].stop()
+        app.root.after(0, app.root.destroy)
+
     if TRAY_AVAILABLE and not args.no_tray:
-        def quit_app():
-            if tray_icon_holder.get("icon"):
-                tray_icon_holder["icon"].stop()
-            app.root.after(0, app.root.destroy)
-
-        def break_now():
-            app.root.after(0, app.start_break)
-
         def start_tray():
-            icon = None
             try:
                 import pystray
-                from .tray import _make_icon_image
                 menu = pystray.Menu(
-                    pystray.MenuItem("Take a break now", lambda: break_now()),
+                    pystray.MenuItem("Settings", lambda: app.root.after(0, open_settings), default=True),
+                    pystray.MenuItem("Take a break now", lambda: app.root.after(0, app.start_break)),
                     pystray.MenuItem("Quit", lambda: quit_app()),
                 )
-                icon = pystray.Icon("break-timer", _make_icon_image(), "Break Timer", menu)
+                icon = pystray.Icon("break-timer", make_icon_image(), "Break Timer", menu)
                 tray_icon_holder["icon"] = icon
                 icon.run()
             except Exception:
                 pass  # No usable tray backend on this system - app still runs fine without it
 
         threading.Thread(target=start_tray, daemon=True).start()
+    else:
+        # No tray available - open Settings immediately so the app is still reachable
+        app.root.after(500, open_settings)
 
     app.run()
 
