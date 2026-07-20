@@ -13,11 +13,11 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: break-timer-windows.exe
+            artifact_name: break-timer-windows.zip
           - os: macos-latest
-            artifact_name: break-timer-macos
+            artifact_name: break-timer-macos.zip
           - os: ubuntu-latest
-            artifact_name: break-timer-linux
+            artifact_name: break-timer-linux.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -37,23 +37,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller .
 
+      # --onedir (not --onefile): a plain folder of files with no runtime
+      # self-extraction. --onefile's self-extract-to-temp-and-run behavior
+      # is what triggers Defender's Wacatac.B!ml heuristic, independent of
+      # UPX compression - onedir avoids that pattern entirely.
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onefile --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds;break_timer/assets/sounds" run_break_timer.py
+          pyinstaller --onedir --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds;break_timer/assets/sounds" run_break_timer.py
 
       - name: Build executable (macOS/Linux)
         if: matrix.os != 'windows-latest'
         run: |
-          pyinstaller --onefile --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds:break_timer/assets/sounds" run_break_timer.py
+          pyinstaller --onedir --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds:break_timer/assets/sounds" run_break_timer.py
 
-      - name: Rename artifact (Windows)
+      - name: Zip the app folder (Windows)
         if: matrix.os == 'windows-latest'
-        run: mv dist/break-timer.exe dist/${{ matrix.artifact_name }}
+        run: Compress-Archive -Path dist/break-timer/* -DestinationPath dist/${{ matrix.artifact_name }}
 
-      - name: Rename artifact (macOS/Linux)
+      - name: Zip the app folder (macOS/Linux)
         if: matrix.os != 'windows-latest'
-        run: mv dist/break-timer dist/${{ matrix.artifact_name }}
+        run: |
+          cd dist/break-timer
+          zip -r ../${{ matrix.artifact_name }} .
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
