@@ -40,12 +40,12 @@ jobs:
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onefile --windowed --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds;break_timer/assets/sounds" run_break_timer.py
+          pyinstaller --onefile --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds;break_timer/assets/sounds" run_break_timer.py
 
       - name: Build executable (macOS/Linux)
         if: matrix.os != 'windows-latest'
         run: |
-          pyinstaller --onefile --windowed --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds:break_timer/assets/sounds" run_break_timer.py
+          pyinstaller --onefile --windowed --noupx --name break-timer --hidden-import=PIL._tkinter_finder --add-data "src/break_timer/assets/sounds:break_timer/assets/sounds" run_break_timer.py
 
       - name: Rename artifact (Windows)
         if: matrix.os == 'windows-latest'
