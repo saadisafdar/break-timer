@@ -14,7 +14,6 @@ SOUND_DIR = os.path.join(os.path.dirname(__file__), "assets", "sounds")
 
 SOUND_FILES = {
     "None": None,
-    "Gong": "gong.wav",
     "Blip": "blip.wav",
     "Bloop": "bloop.wav",
     "Ping": "ping.wav",

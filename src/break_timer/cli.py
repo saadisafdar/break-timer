@@ -39,7 +39,7 @@ def main():
                 import pystray
                 menu = pystray.Menu(
                     pystray.MenuItem("Settings", lambda: app.root.after(0, open_settings), default=True),
-                    pystray.MenuItem("Take a break now", lambda: app.root.after(0, app.start_break)),
+                    pystray.MenuItem("Take a break now", lambda: app.root.after(0, app.trigger_break_now)),
                     pystray.MenuItem("Quit", lambda: quit_app()),
                 )
                 icon = pystray.Icon("break-timer", make_icon_image(), "Break Timer", menu)

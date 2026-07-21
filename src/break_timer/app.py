@@ -55,6 +55,30 @@ class BreakTimerApp:
         self.config.update(new_config)
         now_enabled = self.config.get("enabled", True)
 
+        if self._break_active:
+            # A break is currently on screen - don't touch the auto-timer
+            # now. Rescheduling here (even via _reschedule()'s own cancel
+            # guard) would still schedule the next break using the full
+            # delay counted from *now*, landing in the middle of or right
+            # after the current break instead of after it properly ends.
+            # end_break()/cancel_break() will reschedule correctly, using
+            # the updated settings, once this break actually finishes.
+            if was_enabled and not now_enabled:
+                self._close_popup()
+            return
+
+        self._reschedule()
+        if was_enabled and not now_enabled:
+            self._close_popup()
+
+    # ---------- scheduling ----------
+
+    def _reschedule(self, delay_ms=None):
+        # Always cancel any existing pending timer first. Without this,
+        # calling _reschedule() twice (e.g. once from apply_config() while
+        # a break is showing, and again from end_break() when it finishes)
+        # leaves an orphaned timer alive that fires later on its own,
+        # causing an unexpected extra break.
         if self.next_break_job is not None:
             try:
                 self.root.after_cancel(self.next_break_job)
@@ -62,20 +86,23 @@ class BreakTimerApp:
                 pass
             self.next_break_job = None
 
-        if now_enabled:
-            self._reschedule()
-        elif was_enabled and not now_enabled:
-            # Turned off - also close any break in progress
-            self._close_popup()
-
-    # ---------- scheduling ----------
-
-    def _reschedule(self, delay_ms=None):
         if not self.config.get("enabled", True):
             return
         if delay_ms is None:
             delay_ms = int(self.config["work_seconds"] * 1000)
         self.next_break_job = self.root.after(delay_ms, self.start_break)
+
+    def trigger_break_now(self):
+        """Safe entry point for manually starting a break (e.g. from the
+        tray menu) - cancels the pending auto-scheduled timer first so it
+        can't also fire later and cause a surprise second break."""
+        if self.next_break_job is not None:
+            try:
+                self.root.after_cancel(self.next_break_job)
+            except (ValueError, tk.TclError):
+                pass
+            self.next_break_job = None
+        self.start_break()
 
     # ---------- break screen ----------
 
@@ -111,7 +138,7 @@ class BreakTimerApp:
         top_row.pack(fill="x")
 
         title = tk.Label(
-            top_row, text=self.config.get("title", "Time for a break."),
+            top_row, text=self.config.get("title", "Take a break"),
             font=("Segoe UI", 20, "bold"),
             bg=TEAL, fg=WHITE, anchor="w"
         )

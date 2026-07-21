@@ -7,9 +7,9 @@ DEFAULT_CONFIG = {
     "enabled": True,
     "work_seconds": 20 * 60,
     "break_seconds": 60,
-    "title": "Time for a break.",
-    "message": "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
-    "sound": "Gong",
+    "title": "Take a break",
+    "message": "Look away from the screen.\nRoll your shoulders.\nTake a few deep breaths.",
+    "sound": "Ping",
 }
 
 

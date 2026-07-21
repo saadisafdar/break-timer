@@ -125,7 +125,7 @@ class SettingsWindow:
         # Title
         tk.Label(pad, text="Title", font=("Segoe UI", 10, "bold"),
                   bg=BG, fg=TEXT, anchor="w").pack(anchor="w", pady=(0, 6))
-        self.title_var = tk.StringVar(value=config.get("title", "Time for a break."))
+        self.title_var = tk.StringVar(value=config.get("title", "Take a break"))
         tk.Entry(pad, textvariable=self.title_var, font=("Segoe UI", 11),
                   bg=FIELD, fg=TEXT, relief="flat", insertbackground=TEXT
                   ).pack(fill="x", ipady=6, pady=(0, 16))
@@ -141,7 +141,7 @@ class SettingsWindow:
         # Audio
         tk.Label(pad, text="Break sound", font=("Segoe UI", 10, "bold"),
                   bg=BG, fg=TEXT, anchor="w").pack(anchor="w", pady=(0, 6))
-        self.sound_var = tk.StringVar(value=config.get("sound", "Gong"))
+        self.sound_var = tk.StringVar(value=config.get("sound", "Ping"))
         sound_box = ttk.Combobox(pad, textvariable=self.sound_var, state="readonly",
                                    values=audio.available_sounds(), width=20)
         sound_box.pack(anchor="w", pady=(0, 8))
@@ -205,7 +205,7 @@ class SettingsWindow:
             "enabled": self.enabled_toggle.get(),
             "work_seconds": max(1, self.get_work_seconds()),
             "break_seconds": max(1, self.get_break_seconds()),
-            "title": self.title_var.get().strip() or "Time for a break.",
+            "title": self.title_var.get().strip() or "Take a break",
             "message": self.message_text.get("1.0", "end").strip(),
             "sound": self.sound_var.get(),
         }
