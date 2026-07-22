@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "breakbell"
+version = "1.1.0"
+description = "BreakBell - a tiny, lightweight desktop break reminder with a teal countdown screen."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pystray>=0.19",
+    "Pillow>=9.0",
+]
+license = { text = "MIT" }
+authors = [{ name = "Sa'adi Safdar" }]
+keywords = ["break", "timer", "reminder", "productivity", "desktop", "tkinter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+]
+
+[project.urls]
+Homepage = "https://github.com/saadisafdar/breakbell"
+Issues = "https://github.com/saadisafdar/breakbell/issues"
+
+[project.scripts]
+breakbell = "breakbell.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+breakbell = ["assets/sounds/*.wav"]
