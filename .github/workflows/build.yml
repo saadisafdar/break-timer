@@ -44,12 +44,12 @@ jobs:
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onedir --windowed --noupx --name breakbell --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds;breakbell/assets/sounds" run_breakbell.py
+          pyinstaller --onedir --windowed --noupx --name breakbell --icon=icon.ico --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds;breakbell/assets/sounds" --add-data "src/breakbell/assets/icon.png;breakbell/assets" run_breakbell.py
 
       - name: Build executable (macOS/Linux)
         if: matrix.os != 'windows-latest'
         run: |
-          pyinstaller --onedir --windowed --noupx --name breakbell --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds:breakbell/assets/sounds" run_breakbell.py
+          pyinstaller --onedir --windowed --noupx --name breakbell --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds:breakbell/assets/sounds" --add-data "src/breakbell/assets/icon.png:breakbell/assets" run_breakbell.py
 
       - name: Zip the app folder (Windows)
         if: matrix.os == 'windows-latest'

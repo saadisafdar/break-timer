@@ -12,11 +12,12 @@ import tkinter as tk
 import time
 
 from . import audio
+from . import tray
 from .config import DEFAULT_CONFIG
 
-TEAL = "#14b8a6"
-TEAL_DARK = "#0d9488"
-TEAL_TRACK = "#3fc9b8"
+NAVY = "#103046"
+NAVY_DARK = "#0a2233"
+NAVY_TRACK = "#2c5170"
 WHITE = "#ffffff"
 
 
@@ -28,6 +29,11 @@ class BreakTimerApp:
 
         self.root = tk.Tk()
         self.root.withdraw()  # main window is never shown
+        try:
+            self._icon_img = tk.PhotoImage(file=tray.icon_path())
+            self.root.iconphoto(True, self._icon_img)
+        except Exception:
+            pass
 
         self.popup = None
         self.overlay = None
@@ -128,52 +134,52 @@ class BreakTimerApp:
         popup.title("BreakBell")
         popup.attributes("-topmost", True)
         popup.overrideredirect(True)
-        popup.configure(bg=TEAL)
+        popup.configure(bg=NAVY)
 
         width = 500
-        card = tk.Frame(popup, bg=TEAL, padx=28, pady=22)
+        card = tk.Frame(popup, bg=NAVY, padx=28, pady=22)
         card.pack(fill="both", expand=True)
 
-        top_row = tk.Frame(card, bg=TEAL)
+        top_row = tk.Frame(card, bg=NAVY)
         top_row.pack(fill="x")
 
         title = tk.Label(
             top_row, text=self.config.get("title", "Take a break"),
             font=("Segoe UI", 20, "bold"),
-            bg=TEAL, fg=WHITE, anchor="w"
+            bg=NAVY, fg=WHITE, anchor="w"
         )
         title.pack(side="left")
 
         cancel_btn = tk.Button(
             top_row, text="Cancel Break", command=self.cancel_break,
-            bg=WHITE, fg=TEAL_DARK, relief="flat", padx=12, pady=6,
+            bg=WHITE, fg=NAVY_DARK, relief="flat", padx=12, pady=6,
             font=("Segoe UI", 9, "bold"), activebackground="#eafaf7",
-            activeforeground=TEAL_DARK, cursor="hand2", bd=0
+            activeforeground=NAVY_DARK, cursor="hand2", bd=0
         )
         cancel_btn.pack(side="right")
 
-        body = tk.Frame(card, bg=TEAL)
+        body = tk.Frame(card, bg=NAVY)
         body.pack(fill="x", pady=(18, 8))
         for line in self.lines:
             tk.Label(
-                body, text=line, font=("Segoe UI", 12), bg=TEAL, fg=WHITE, anchor="w"
+                body, text=line, font=("Segoe UI", 12), bg=NAVY, fg=WHITE, anchor="w"
             ).pack(anchor="w", pady=1)
 
-        bottom_row = tk.Frame(card, bg=TEAL)
+        bottom_row = tk.Frame(card, bg=NAVY)
         bottom_row.pack(fill="x", pady=(14, 0))
 
         break_seconds = self.config["break_seconds"]
         self.time_label = tk.Label(
             bottom_row, text=self._format_time(break_seconds),
-            font=("Segoe UI", 11), bg=TEAL, fg=WHITE
+            font=("Segoe UI", 11), bg=NAVY, fg=WHITE
         )
         self.time_label.pack(side="right")
 
-        bar_wrap = tk.Frame(card, bg=TEAL_TRACK, height=6)
+        bar_wrap = tk.Frame(card, bg=NAVY_TRACK, height=6)
         bar_wrap.pack(fill="x", pady=(6, 0))
         bar_wrap.pack_propagate(False)
 
-        self.progress_canvas = tk.Canvas(bar_wrap, bg=TEAL_TRACK, height=6, highlightthickness=0)
+        self.progress_canvas = tk.Canvas(bar_wrap, bg=NAVY_TRACK, height=6, highlightthickness=0)
         self.progress_canvas.pack(fill="both", expand=True)
         self.progress_bar_id = self.progress_canvas.create_rectangle(
             0, 0, width - 56, 6, fill=WHITE, width=0

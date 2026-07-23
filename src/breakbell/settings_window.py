@@ -3,13 +3,14 @@ import tkinter as tk
 from tkinter import ttk
 
 from . import audio
+from . import tray
 
-BG = "#0e0e10"
+BG = "#1D1D1D"
 PANEL = "#1a1a1d"
 FIELD = "#232326"
 TEXT = "#f2f2f3"
 SUBTEXT = "#9a9aa0"
-ACCENT = "#14b8a6"
+ACCENT = "#103046"
 
 
 class Toggle(tk.Canvas):
@@ -86,6 +87,11 @@ class SettingsWindow:
         self.win.configure(bg=BG)
         self.win.resizable(True, True)
         self.win.attributes("-topmost", True)
+        try:
+            self._icon_img = tk.PhotoImage(file=tray.icon_path())
+            self.win.iconphoto(True, self._icon_img)
+        except Exception:
+            pass
 
         canvas = tk.Canvas(self.win, bg=BG, highlightthickness=0)
         vscroll = tk.Scrollbar(self.win, orient="vertical", command=canvas.yview)
@@ -159,7 +165,7 @@ class SettingsWindow:
                    ).pack(side="right", padx=(8, 0))
         tk.Button(btn_row, text="Save", command=self._save,
                    bg=ACCENT, fg="white", relief="flat", padx=16, pady=8,
-                   font=("Segoe UI", 10, "bold"), activebackground="#0d9488",
+                   font=("Segoe UI", 10, "bold"), activebackground="#1c4a68",
                    activeforeground="white", cursor="hand2"
                    ).pack(side="right")
 
