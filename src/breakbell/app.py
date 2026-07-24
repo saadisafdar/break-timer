@@ -136,55 +136,65 @@ class BreakTimerApp:
         popup.overrideredirect(True)
         popup.configure(bg=NAVY)
 
-        width = 500
+        width = 560
         card = tk.Frame(popup, bg=NAVY, padx=28, pady=22)
         card.pack(fill="both", expand=True)
 
-        top_row = tk.Frame(card, bg=NAVY)
-        top_row.pack(fill="x")
+        content_row = tk.Frame(card, bg=NAVY)
+        content_row.pack(fill="both", expand=True)
+
+        left_col = tk.Frame(content_row, bg=NAVY)
+        left_col.pack(side="left", fill="both", expand=True)
+
+        right_col = tk.Frame(content_row, bg=NAVY)
+        right_col.pack(side="right", padx=(28, 0))
 
         title = tk.Label(
-            top_row, text=self.config.get("title", "Take a break"),
+            left_col, text=self.config.get("title", "Take a break"),
             font=("Segoe UI", 20, "bold"),
             bg=NAVY, fg=WHITE, anchor="w"
         )
-        title.pack(side="left")
+        title.pack(anchor="w")
 
-        cancel_btn = tk.Button(
-            top_row, text="Cancel Break", command=self.cancel_break,
-            bg=WHITE, fg=NAVY_DARK, relief="flat", padx=12, pady=6,
-            font=("Segoe UI", 9, "bold"), activebackground="#eafaf7",
-            activeforeground=NAVY_DARK, cursor="hand2", bd=0
-        )
-        cancel_btn.pack(side="right")
-
-        body = tk.Frame(card, bg=NAVY)
-        body.pack(fill="x", pady=(18, 8))
+        body = tk.Frame(left_col, bg=NAVY)
+        body.pack(anchor="w", pady=(18, 20), fill="x")
         for line in self.lines:
             tk.Label(
                 body, text=line, font=("Segoe UI", 12), bg=NAVY, fg=WHITE, anchor="w"
             ).pack(anchor="w", pady=1)
 
-        bottom_row = tk.Frame(card, bg=NAVY)
-        bottom_row.pack(fill="x", pady=(14, 0))
+        cancel_btn = tk.Button(
+            left_col, text="Cancel Break", command=self.cancel_break,
+            bg=WHITE, fg=NAVY_DARK, relief="flat", padx=12, pady=6,
+            font=("Segoe UI", 9, "bold"), activebackground="#eafaf7",
+            activeforeground=NAVY_DARK, cursor="hand2", bd=0
+        )
+        cancel_btn.pack(anchor="w")
+
+        # Vertical progress bar: thick, fixed height, fills top-to-bottom and
+        # drains (shrinks from the top, anchored at the bottom) as time passes
+        vbar_width = 44
+        vbar_height = 180
+        bar_wrap = tk.Frame(right_col, bg=NAVY_TRACK, width=vbar_width, height=vbar_height)
+        bar_wrap.pack()
+        bar_wrap.pack_propagate(False)
+
+        self.progress_canvas = tk.Canvas(
+            bar_wrap, bg=NAVY_TRACK, width=vbar_width, height=vbar_height, highlightthickness=0
+        )
+        self.progress_canvas.pack(fill="both", expand=True)
+        self.progress_bar_id = self.progress_canvas.create_rectangle(
+            0, 0, vbar_width, vbar_height, fill=WHITE, width=0
+        )
+        self._vbar_width = vbar_width
+        self._vbar_height = vbar_height
 
         break_seconds = self.config["break_seconds"]
         self.time_label = tk.Label(
-            bottom_row, text=self._format_time(break_seconds),
+            right_col, text=self._format_time(break_seconds),
             font=("Segoe UI", 11), bg=NAVY, fg=WHITE
         )
-        self.time_label.pack(side="right")
-
-        bar_wrap = tk.Frame(card, bg=NAVY_TRACK, height=6)
-        bar_wrap.pack(fill="x", pady=(6, 0))
-        bar_wrap.pack_propagate(False)
-
-        self.progress_canvas = tk.Canvas(bar_wrap, bg=NAVY_TRACK, height=6, highlightthickness=0)
-        self.progress_canvas.pack(fill="both", expand=True)
-        self.progress_bar_id = self.progress_canvas.create_rectangle(
-            0, 0, width - 56, 6, fill=WHITE, width=0
-        )
-        self._full_bar_width = width - 56
+        self.time_label.pack(pady=(10, 0))
 
         popup.update_idletasks()
         height = card.winfo_reqheight()
@@ -261,8 +271,9 @@ class BreakTimerApp:
         self.time_label.config(text=self._format_time(remaining))
         frac = remaining / self._break_total
         try:
+            filled_top = self._vbar_height * (1 - frac)
             self.progress_canvas.coords(
-                self.progress_bar_id, 0, 0, self._full_bar_width * frac, 6
+                self.progress_bar_id, 0, filled_top, self._vbar_width, self._vbar_height
             )
         except tk.TclError:
             return

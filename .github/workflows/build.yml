@@ -37,6 +37,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller .
 
+      # Determine the version string from the release tag (e.g. v1.0.9 -> 1.0.9),
+      # and a numeric 4-part Windows file-version (e.g. 1.0.9.0), used to stamp
+      # proper Company/Product metadata into the exe and the installer.
+      - name: Determine version string (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if ([string]::IsNullOrEmpty($tag)) { $tag = "0.0.0" }
+          $version = $tag -replace '^v', ''
+          $parts = $version -split '\.'
+          $numParts = @()
+          foreach ($p in $parts) {
+            if ($p -match '^\d+$') { $numParts += [int]$p } else { $numParts += 0 }
+          }
+          while ($numParts.Count -lt 4) { $numParts += 0 }
+          $numParts = $numParts[0..3]
+          $fileVersion = ($numParts -join '.')
+          echo "APP_VERSION=$version" >> $env:GITHUB_ENV
+          echo "FILE_VERSION=$fileVersion" >> $env:GITHUB_ENV
+          echo "FILE_VERSION_TUPLE=$($numParts -join ', ')" >> $env:GITHUB_ENV
+
+      - name: Stamp version into version_info.txt (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          (Get-Content version_info.txt) `
+            -replace '\(0, 0, 0, 0\)', "($env:FILE_VERSION_TUPLE)" `
+            -replace '0\.0\.0\.0', "$env:FILE_VERSION" |
+            Set-Content version_info.txt
+
       # --onedir (not --onefile): a plain folder of files with no runtime
       # self-extraction. --onefile's self-extract-to-temp-and-run behavior
       # is what triggers Defender's Wacatac.B!ml heuristic, independent of
@@ -44,7 +75,7 @@ jobs:
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onedir --windowed --noupx --name breakbell --icon=icon.ico --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds;breakbell/assets/sounds" --add-data "src/breakbell/assets/icon.png;breakbell/assets" run_breakbell.py
+          pyinstaller --onedir --windowed --noupx --name breakbell --icon=icon.ico --version-file=version_info.txt --hidden-import=PIL._tkinter_finder --add-data "src/breakbell/assets/sounds;breakbell/assets/sounds" --add-data "src/breakbell/assets/icon.png;breakbell/assets" run_breakbell.py
 
       - name: Build executable (macOS/Linux)
         if: matrix.os != 'windows-latest'
@@ -69,15 +100,6 @@ jobs:
       # --- Windows-only: build a proper installer (Program Files install,
       # Start Menu shortcut, optional desktop shortcut, optional "launch at
       # Windows startup", and a real uninstaller) using Inno Setup ---
-      - name: Determine version string (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          $tag = "${{ github.event.release.tag_name }}"
-          if ([string]::IsNullOrEmpty($tag)) { $tag = "dev" }
-          $version = $tag -replace '^v', ''
-          echo "APP_VERSION=$version" >> $env:GITHUB_ENV
-
       - name: Install Inno Setup (Windows)
         if: matrix.os == 'windows-latest'
         run: choco install innosetup -y

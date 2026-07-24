@@ -13,36 +13,6 @@ SUBTEXT = "#9a9aa0"
 ACCENT = "#103046"
 
 
-class Toggle(tk.Canvas):
-    """Small pill-shaped on/off switch."""
-
-    def __init__(self, parent, value=True, command=None, **kwargs):
-        super().__init__(parent, width=44, height=24, bg=PANEL,
-                          highlightthickness=0, **kwargs)
-        self.value = value
-        self.command = command
-        self.bind("<Button-1>", self._toggle)
-        self._draw()
-
-    def _draw(self):
-        self.delete("all")
-        color = ACCENT if self.value else "#4a4a4e"
-        self.create_oval(0, 0, 24, 24, fill=color, outline="")
-        self.create_oval(20, 0, 44, 24, fill=color, outline="")
-        self.create_rectangle(12, 0, 32, 24, fill=color, outline="")
-        knob_x = 32 if self.value else 12
-        self.create_oval(knob_x - 9, 3, knob_x + 9, 21, fill="white", outline="")
-
-    def _toggle(self, _event=None):
-        self.value = not self.value
-        self._draw()
-        if self.command:
-            self.command(self.value)
-
-    def get(self):
-        return self.value
-
-
 def _hms_row(parent, label_text, total_seconds):
     """Builds an 'HH h : MM m : SS s' row of spinboxes. Returns a getter function."""
     tk.Label(parent, text=label_text, font=("Segoe UI", 10, "bold"),
@@ -85,7 +55,7 @@ class SettingsWindow:
         self.win = tk.Toplevel(root)
         self.win.title("BreakBell Settings")
         self.win.configure(bg=BG)
-        self.win.resizable(True, True)
+        self.win.resizable(False, False)
         self.win.attributes("-topmost", True)
         try:
             self._icon_img = tk.PhotoImage(file=tray.icon_path())
@@ -116,17 +86,33 @@ class SettingsWindow:
 
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-        # Breaks header + toggle
+        # Breaks header
         header = tk.Frame(pad, bg=BG)
         header.pack(fill="x", pady=(0, 18))
         tk.Label(header, text="Breaks", font=("Segoe UI", 15, "bold"),
                   bg=BG, fg=TEXT).pack(side="left")
-        self.enabled_toggle = Toggle(header, value=config.get("enabled", True))
-        self.enabled_toggle.pack(side="right")
 
-        # Frequency / Length
-        self.get_work_seconds = _hms_row(pad, "Frequency", config.get("work_seconds", 1200))
-        self.get_break_seconds = _hms_row(pad, "Length", config.get("break_seconds", 60))
+        # Frequency / Length, side by side
+        freq_length_row = tk.Frame(pad, bg=BG)
+        freq_length_row.pack(fill="x")
+        freq_col = tk.Frame(freq_length_row, bg=BG)
+        freq_col.pack(side="left", padx=(0, 28))
+        length_col = tk.Frame(freq_length_row, bg=BG)
+        length_col.pack(side="left")
+        self.get_work_seconds = _hms_row(freq_col, "Frequency", config.get("work_seconds", 1200))
+        self.get_break_seconds = _hms_row(length_col, "Length", config.get("break_seconds", 60))
+
+        # Audio (moved above Title/Message)
+        tk.Label(pad, text="Break sound", font=("Segoe UI", 10, "bold"),
+                  bg=BG, fg=TEXT, anchor="w").pack(anchor="w", pady=(0, 6))
+        self.sound_var = tk.StringVar(value=config.get("sound", "Ping"))
+        sound_box = ttk.Combobox(pad, textvariable=self.sound_var, state="readonly",
+                                   values=audio.available_sounds(), width=20)
+        sound_box.pack(anchor="w", pady=(0, 8))
+        tk.Button(pad, text="Preview sound", command=self._preview_sound,
+                   bg=FIELD, fg=TEXT, relief="flat", padx=10, pady=4,
+                   activebackground=FIELD, activeforeground=TEXT, cursor="hand2"
+                   ).pack(anchor="w", pady=(0, 20))
 
         # Title
         tk.Label(pad, text="Title", font=("Segoe UI", 10, "bold"),
@@ -142,19 +128,7 @@ class SettingsWindow:
         self.message_text = tk.Text(pad, height=4, font=("Segoe UI", 11), bg=FIELD, fg=TEXT,
                                       relief="flat", insertbackground=TEXT, wrap="word")
         self.message_text.insert("1.0", config.get("message", ""))
-        self.message_text.pack(fill="x", pady=(0, 16))
-
-        # Audio
-        tk.Label(pad, text="Break sound", font=("Segoe UI", 10, "bold"),
-                  bg=BG, fg=TEXT, anchor="w").pack(anchor="w", pady=(0, 6))
-        self.sound_var = tk.StringVar(value=config.get("sound", "Ping"))
-        sound_box = ttk.Combobox(pad, textvariable=self.sound_var, state="readonly",
-                                   values=audio.available_sounds(), width=20)
-        sound_box.pack(anchor="w", pady=(0, 8))
-        tk.Button(pad, text="Preview sound", command=self._preview_sound,
-                   bg=FIELD, fg=TEXT, relief="flat", padx=10, pady=4,
-                   activebackground=FIELD, activeforeground=TEXT, cursor="hand2"
-                   ).pack(anchor="w", pady=(0, 20))
+        self.message_text.pack(fill="x", pady=(0, 20))
 
         # Save / Cancel
         btn_row = tk.Frame(pad, bg=BG)
@@ -208,7 +182,7 @@ class SettingsWindow:
 
     def _save(self):
         new_config = {
-            "enabled": self.enabled_toggle.get(),
+            "enabled": True,
             "work_seconds": max(1, self.get_work_seconds()),
             "break_seconds": max(1, self.get_break_seconds()),
             "title": self.title_var.get().strip() or "Take a break",
